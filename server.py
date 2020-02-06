@@ -1,23 +1,40 @@
-import falcon
-#from falcon_cors import CORS    
-#cors = CORS(allow_origins_list=['http://127.0.0.1'],allow_all_headers=True, allow_all_methods=True)   
-from falcon.http_status import HTTPStatus
-from controllers.books_controller import Books
-from controllers.student_controller import Student
+from flask import Flask,render_template,request,redirect
+from flask_mysqldb import MySQL
+import json
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)
+app.config['MYSQL_HOST']='localhost'
+app.config['MYSQL_USER']='root'
+app.config['MYSQL_PASSWORD']=''
+app.config['MYSQL_DB']='boek'
+
+mysql = MySQL(app)
+
+@app.route("/")
+def index():
+    return "Hello"
+
+@app.route('/getdetails',methods=['GET'])
+def get():
+    if(request.method=="GET"):
+        attr=["isbn","mrp","name","author","image_url","description","categories"]
+        cur=mysql.connection.cursor()
+        cur.execute("Select * from books")
+        cur_data=cur.fetchall()
+        
+        fetch_list=[]
+        for data in cur_data:
+            dictionary={}
+            for i,x in enumerate(data):
+                dictionary[attr[i]]=x
+            fetch_list.append(dictionary)
+        print(fetch_list)
+        cur.close()
+        return json.dumps(fetch_list)
 
 
-class HandleCORS(object):
-    def process_request(self, req, resp):
-        resp.set_header('Access-Control-Allow-Origin', '*')
-        resp.set_header('Access-Control-Allow-Methods', '*')
-        resp.set_header('Access-Control-Allow-Headers', '*')
-        resp.set_header('Access-Control-Max-Age', 1728000)  # 20 days
-        if req.method == 'OPTIONS':
-            raise HTTPStatus(falcon.HTTP_200, body='\n')
 
-
-api = falcon.API(middleware=[ HandleCORS() ])
-
-api.add_route('/books',Books())
-#api.add_route('/teachers',Students())
-#api.add_route('/students/{sid:int}',Student())
+if __name__=="__main__":
+    app.run(host='0.0.0.0',debug=True)
